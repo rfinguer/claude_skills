@@ -1,0 +1,9 @@
+# company / user settings and local artifacts never go to this public repository
+config.local.json
+**/config.local.json
+__pycache__/
+*.pyc
+sigma_openapi.json
+backup_*.json
+last_push.txt
+*.zip
