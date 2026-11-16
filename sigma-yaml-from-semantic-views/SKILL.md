@@ -9,6 +9,21 @@ Goal: a Sigma workbook spec that (1) Sigma's importer accepts and (2) reproduces
 same visuals, display names, filters, slicers, formatting and **numbers equal to the DAX**. Then push it with
 `scripts/sigma_cli.py`.
 
+**Where each part comes from (strict):**
+- **Data = Snowflake only.** Every number, metric, dimension, filter and date logic comes from the semantic views in
+  the user's Snowflake connection, mapped from the DAX in the **TMDL**. You decide, from the TMDL against the semantic
+  views, what can go on the page and how it is computed.
+- **Jira ticket = layout only.** Use it for what the page looks like: page title, visual types and order, which
+  fields each visual shows and their display names, slicers/buttons and their defaults, bookmarks, text labels,
+  colors and conditional formatting. Never take data logic from the ticket; when the ticket and the TMDL disagree on
+  a calculation, the TMDL + semantic views win, and you list the difference in the report.
+
+## Language
+
+Talk to the user **in English** (messages, questions, the final report, the text in the Sigma windows), unless their
+`config.local.json` has a `"language"` value (e.g. `"pt-BR"`): then use that language. Code, file content, commit
+messages and anything written to the repository stay in English.
+
 ## Security rules (non-negotiable)
 
 - Each user creates **their own** Sigma API client (Sigma > Administration > Developer Access) with permission to
@@ -28,52 +43,96 @@ same visuals, display names, filters, slicers, formatting and **numbers equal to
 
 ## Keep the skill current (every run)
 
-This skill lives in the Git repository **https://github.com/rfinguer/claude_skills** (folder
-`sigma-yaml-from-semantic-views/`). That repository is the single source of truth, and it is **public**.
-- **Before step 0:** if the skill folder is inside a Git clone of that repository, run `git pull --ff-only` in the
-  clone so you use the latest version. If the pull fails (local changes, no network), say so in one line and go on.
-- **Whenever you learn something new** while using the skill, from this user or any other (a correction from the
-  user, a new Sigma importer error and its fix, a spec key checked in the OpenAPI, a SEMANTIC_VIEW pattern, a
-  workflow rule the user asks for), **update the skill and publish it to the repository in the same run**:
+This skill lives in the **public** Git repository **https://github.com/rfinguer/claude_skills** (folder
+`sigma-yaml-from-semantic-views/`). A team can also keep a **private fork** with its own settings and change log; then
+that fork is the source of truth for the team.
+- **Before step 0:** if the skill folder is inside a Git clone, run `git pull --ff-only` in the clone so you use the
+  latest version. If the pull fails (no access, local changes, no network), say so in one line and go on.
+- **Whenever you learn something new** while using the skill (a correction from the user, a new Sigma importer error
+  and its fix, a spec key checked in the OpenAPI, a SEMANTIC_VIEW pattern, a workflow rule the user asks for),
+  **update the skill and publish it in the same run**:
   1. Edit the right file: `SKILL.md` for workflow rules, `references/sigma-spec-gotchas.md` for Sigma spec errors
-     and keys, `references/sql-patterns.md` for SQL / semantic view patterns, `scripts/` for CLI behavior.
-  2. **Write it generically.** The repository is public: never commit company names, database / schema / account
-     names, hostnames, Jira keys or site names, people's names, connection ids, data values, screenshots, or any
-     secret. Use placeholders (`MY_DB.MY_SCHEMA`, `PROJ-123`, `<your-site>.atlassian.net`). Company values belong in
-     `config.local.json` only.
-  3. Before committing, scan the diff for company identifiers and secrets (for example `git diff | grep -iE
-     "<company>|password|secret|token"`). Never commit `config.local.json`.
+     and keys, `references/sql-patterns.md` for SQL / semantic view patterns, `references/sv-change-log.md` for
+     semantic view changes (private forks only), `scripts/` for CLI behavior.
+  2. **In a public repository write it generically**: never commit company names, database / schema / account /
+     role names, hostnames, Jira keys or site names, people's names or e-mails, connection ids, data values,
+     screenshots, or any secret. Use placeholders (`MY_DB.MY_SCHEMA`, `PROJ-123`, `<your-site>.atlassian.net`).
+     Company values belong in `config.local.json` (or a private fork) only.
+  3. Before committing, scan the diff for company identifiers and secrets (for example
+     `git diff | grep -iE "<company>|secret|token|password|client_id"`). Never commit `config.local.json` or
+     `preflight.local.json`.
   4. Commit with a short message that says what was learned (e.g. `sigma-yaml: grouped table sort must be per
-     grouping level`), then `git push`. If the user has no write access, push a branch to a fork and open a pull
-     request with `gh pr create`.
+     grouping level`), then `git push` with the user's own GitHub account. If they have no write access, push a
+     branch to their fork and open a pull request with `gh pr create`.
   5. Tell the user in one line what changed and the commit or PR link.
 
 ## Configuration (once per user)
 
-Company-specific values live in **`config.local.json`** next to this file. It is git-ignored, so `git pull` never
-overwrites it and it is never published. `config.example.json` shows the keys.
-- **If `config.local.json` is missing**, ask the user once, in the chat, for: the database and schema of the semantic
-  views; the prefix of test copies to skip (e.g. `ZZ_`); the Snowflake account of their `snow connection list` entry;
-  the Jira site (`<site>.atlassian.net`); and the Sigma API host of their org (e.g.
-  `https://api.us.azure.sigmacomputing.com`). Write the file, then go on. Never put credentials in it.
+Settings live in **`config.local.json`** next to this file (git-ignored, so `git pull` never overwrites it).
+`config.example.json` shows the keys.
+- **If it is missing:** if the folder has a team defaults file (`config.team.json`, shipped by a private fork), copy
+  it to `config.local.json` and tell the user in one line. Otherwise ask the user once, in the chat, for: the database
+  and schema of the semantic views, the prefix of test copies to skip (e.g. `ZZ_`), the Snowflake account of their
+  `snow connection list` entry, the Snowflake role to use, the Jira site (`<site>.atlassian.net`) and the Sigma API
+  host of their org (e.g. `https://api.us.azure.sigmacomputing.com`). Write the file, then go on. Never put
+  credentials in it.
 - Afterwards read it at the start of every run and don't ask again. The user can ask to change it at any time.
-- A team can share a ready-made `config.local.json` internally (never in this repository).
+- **Snowflake role:** run every Snowflake command with the user's own Snow CLI connection **and**
+  `--role <snowflake_role>` (e.g. `snow sql -c <connection> --role <snowflake_role> -q ...`). Each person signs in with
+  their **own** Snowflake login; never use or ask for someone else's credentials. If Snowflake says the role is not
+  granted to the user, stop and tell them to ask their Snowflake administrator to grant `snowflake_role` to their
+  Snowflake user.
+- **Tell the user before the Snowflake sign-in.** If the connection uses single sign-on (`externalbrowser`), the first
+  Snowflake command of a run (and any command after the login expired) opens the **default web browser** on the
+  company / Snowflake sign-in page and waits. Before that first command, say: "A browser window may open to sign you
+  in to Snowflake with your company account. Complete the sign-in there (and approve MFA if asked), then come back;
+  I'll continue on my own." Run Snowflake commands with a generous timeout. If one seems stuck, remind the user to
+  look for that browser window (it may be behind other windows).
 
 ## Workflow
 
+### Preflight: make sure everything is installed and ready (before step 0)
+Check each item yourself (run the command; don't ask the user to check). Report one line per item (ready / missing).
+For every missing item, give the user **numbered, step-by-step instructions**, wait until they say it's done, and
+check again. Don't start step 0 until all required items are ready.
+
+**Remember what already passed:** keep the result in **`preflight.local.json`** next to this file (git-ignored),
+e.g. `{"python": "2026-11-15", "snow_cli": "2026-11-15", "snowflake_role": "2026-11-15", ...}` with the date each item
+passed (never credentials or values). On the next runs **skip the items already recorded** and only check the
+missing ones; just say "preflight: ready (saved)". If a later step fails because of an item (e.g. the Snowflake
+connection or the Sigma sign-in stops working), remove it from the file and check it again. Item 3's `git pull` is
+not a check: it runs every time (see "Keep the skill current").
+
+| # | Item | How to check | If missing, guide the user to |
+|---|---|---|---|
+| 0 | Model | the model you are running on (it is in your own system context) is **Claude Opus 5.5** (`claude-opus-5-5`) | stop and ask the user to switch to Opus 5.5 (the app's model selector, or `/model` in the CLI) and run the skill again; don't continue on another model. Check this every run (don't store it) |
+| 0b | Company approval (if your company requires one) | the user confirms any internal approval to use Claude Code with the Snowflake connection is in place | tell them to follow their company's process (e.g. an access request) and wait for the approval before running the skill |
+| 1 | Python 3.10+ with tkinter | `python --version`; `python -c "import tkinter"` | install Python from python.org (Windows: tick "Add python.exe to PATH" and "tcl/tk"), reopen the app |
+| 2 | PyYAML (optional) | `python -c "import yaml"` | `python -m pip install --user pyyaml` (only needed to read `.yaml` reports; `.json` works without it) |
+| 3 | Git + this repository | `git --version`; `git -C <skill folder> rev-parse --show-toplevel`, `git pull --ff-only` | install Git (git-scm.com); accept the GitHub invitation; clone + link as in the repository README |
+| 4 | Snowflake CLI | `snow --version` | `python -m pip install --user snowflake-cli` (or `pipx install snowflake-cli`) |
+| 5 | Snowflake connection | `snow connection list` shows an entry for `snowflake_account`; `snow sql -c <entry> --role <snowflake_role> -q "SELECT CURRENT_USER(), CURRENT_ROLE()"` | `snow connection add` with account `snowflake_account`, their own user (e-mail), authenticator `externalbrowser`; then sign in in the browser (warn them first: see "Tell the user before the Snowflake sign-in") |
+| 6 | Snowflake role | the query above returns `snowflake_role` | ask their Snowflake administrator to grant the role to their Snowflake user; never use someone else's login |
+| 7 | Semantic views readable | `SHOW SEMANTIC VIEWS IN SCHEMA <sv_database>.<sv_schema>` returns rows | same as item 6 (the role must have access) |
+| 8 | Atlassian MCP | its tools are present (e.g. `getJiraIssue`) | set it up yourself (see step 1, "If it isn't connected"); the user only signs in |
+| 9 | Sigma API client | ask: "Do you have your own Sigma API Client ID and Secret with permission to edit workbooks?" Then run `sigma_cli.py --gui --base-url <sigma_api_host> connections` (a sign-in window opens; this also caches the session for the push) | Sigma > Administration > **Developer Access** > **Create New** > API client, owner = themselves, permission to create/edit workbooks; copy the Client ID and Secret right away (the Secret is shown once); if they can't open Developer Access, a Sigma admin must create it for them. Never ask them to paste it in the chat |
+| 10 | Sigma workbook access | the push's workbook list shows the target workbook (checked at the push, not stored) | the workbook must exist (create and save it once in Sigma) and they need **Can edit** on it (a 403 means no edit access) |
+| 11 | TMDL file | the path from step 0 exists | export the TMDL from Power BI (or ask the report owner) |
+
 ### 0. Ask the user first (one message, before any work)
 The workbook holds **several reports, one page (tab) each**, so every run targets an existing workbook and adds or
-updates one page. Ask for:
-1. **Sigma workbook ID** (UUID) of the target workbook. The user may answer "list": then don't pass
-   `--workbook-id`, and the push window shows a searchable list. A brand-new workbook must be created and saved
-   once in the Sigma UI first.
-2. **Jira ticket** (key or URL, e.g. `PROJ-275`) with the report page description. This is the main spec. It is read
+updates one page. **Never ask for the workbook**: the push always opens the searchable **workbook list** (don't pass
+`--workbook-id`), and the user picks it there. A brand-new workbook must be created and saved once in the Sigma UI
+first. Ask only for (skip what the user already gave, e.g. the ticket in the skill arguments):
+1. **Jira ticket** (key or URL, e.g. `PROJ-275`) with the report page description. It is the **layout** spec. It is read
    through the **Atlassian MCP server** with the user's own Atlassian account (see step 1).
-3. **The Power BI TMDL file**: always ask for its path. There is **no default path**; never assume one. It is
-   optional but strongly recommended, since it has the DAX of every measure.
+2. **The Power BI TMDL file**: always ask for its path. There is **no default path**; never assume one. It is
+   **required**: with the semantic views it is the data spec (the DAX of every measure). Without it, stop and help
+   the user get it (preflight item 11).
 Taken from `config.local.json` (do NOT ask again; see "Configuration"):
 - Semantic views: `sv_database`.`sv_schema` (skip copies whose name starts with `skip_sv_prefix`).
-- Snow CLI connection: the user's own `snow connection list` entry for `snowflake_account`.
+- Snow CLI connection: the user's own `snow connection list` entry for `snowflake_account`, used with
+  `--role <snowflake_role>`.
 - Jira site: `jira_site`.
 - Sigma API host: `sigma_api_host` (pass it as `--base-url`).
 Never ask for the Sigma Client ID/Secret in the chat. They type those only at the CLI's hidden prompt.
@@ -101,24 +160,34 @@ Never ask for the Sigma Client ID/Secret in the chat. They type those only at th
     1. `cloudId`: the site hostname from the config (`jira_site`) works directly; otherwise call
        `getAccessibleAtlassianResources`.
     2. `getJiraIssue` with the `cloudId` and the key (e.g. `PROJ-271`) for the summary, description and attachments.
-    3. `listJiraIssueComments` for the comments: approvals often add requirements (e.g. "the Region column uses a custom
-       sort", "there should be 2 views"). In v2 it's a deferred tool: find it with `discover` and run it with `executeRead`.
+    3. **Always read the description AND every comment** (`listJiraIssueComments`, all pages until `isLast`, oldest
+       first). Comments often change the spec: reviews ("Denied", "Approved") with notes, extra views, missing
+       conditional formatting, custom sorts, "updated the screenshots". Build the layout from the description plus
+       every comment, and when they conflict **the newest comment wins**. In the report, list which comments changed
+       the layout. (In Atlassian MCP v2, if the tool is deferred: find it with `discover`, run it with `executeRead`.)
     4. Screenshots, if needed: `downloadJiraIssueAttachment` returns a short-lived URL and a command to save the
        file. Tell the user which file you will download first, save it in the scratchpad, then view it with Read.
-  - **Never** call write or delete tools (`createJiraIssue`, `editJiraIssue`, `addOrEditJiraIssueComment`,
-    `transitionJiraIssue`, `executeWrite`, `executeDestructive`...): this skill only reads Jira.
-  - The ticket's "Report Page Specification" lists:
-    - the visuals and their fields with display names;
-    - the page, report and visual filters, including hidden or locked ones;
-    - the slicers with their saved selections;
-    - the bookmarks and the conditional formatting.
-  - The **page title** in the ticket becomes the Sigma page name.
-- **TMDL**, if given: it has the DAX of every measure, the calculated tables (field parameters, what-if weights,
+  - Jira is read-only, with **one exception**: adding the gap comment of step 6 with `addOrEditJiraIssueComment`
+    (a new comment only, after the user confirms the text). **Never** edit or delete comments, change fields,
+    status, assignee or sprints, or call `createJiraIssue`, `editJiraIssue`, `transitionJiraIssue`,
+    `executeDestructive`...
+  - Keep the ticket's **assignee** (`fields.assignee.accountId` and `displayName` from `getJiraIssue`) for step 6.
+  - Take from the ticket **only the layout**: page title (= Sigma page name), visuals (type, order, grouping), the
+    fields each one shows and their display names, slicers/buttons and their saved selections, bookmarks, text
+    labels, colors and conditional formatting. Filters listed there tell you which filter controls the page needs;
+    how they filter is checked in the TMDL / semantic views.
+  - Don't take numbers, formulas or data rules from the ticket (see "Where each part comes from").
+- **TMDL** (the data spec, with the semantic views): it has the DAX of every measure, the calculated tables (field parameters, what-if weights,
   ranking tables), the relationships (active/inactive, cross-filter direction) and the M partitions. It has **no
   report layout**. Extract the DAX of every measure on the page and of its dependencies (recursively).
 - **Visual inventory** (PBIR export: page → visual → field, display name), if they have one.
 
-### 2. Map DAX to the semantic views
+### 2. Map DAX to the semantic views (and decide what goes on the page)
+For every field the ticket's layout needs, find its DAX in the TMDL and its semantic view metric/dimension. Then
+decide: **include** it when the semantic views support it (directly, or rebuilt from additive bases); **add a
+public metric** when the base exists but isn't exposed and the user may change the semantic view (see "Changing a
+semantic view"); otherwise **leave it out / empty** and report it in the Jira gap comment (step 6). Don't invent data
+that isn't in Snowflake.
 **Every name comes from the user's own Snowflake connection.** Semantic views, tables, dimensions, metrics and
 facts are always discovered live with the user's Snow CLI connection (the `snow connection list` entry for
 `snowflake_account`), so the user only sees objects their role can access. Never copy names from
@@ -140,9 +209,31 @@ facts are always discovered live with the user's Snow CLI connection (the `snow 
   - Private metrics (`H_*`, `access_modifier: private_access`) can't be queried.
   - FACTS can't be queried together with DIMENSIONS.
   - `PARTITION BY EXCLUDING` / ratio metrics at another grain may fail with "Multi-path in many-to-many".
-- If a needed base is private, ask the user before changing the SV. Then back up the YAML, add a **public additive**
-  metric, validate with `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML(schema, yaml, TRUE)`, check `SHOW GRANTS`, and deploy
-  with `FALSE`.
+- If a needed metric is missing or private, follow **"Changing a semantic view"** below.
+
+#### Changing a semantic view (adding public metrics)
+**Who may change a semantic view: any user whose Snowflake role owns it.** Check it live, every time, before
+changing anything: `snow sql ... --role <snowflake_role> -q "SELECT CURRENT_ROLE()"` works, and
+`SHOW GRANTS ON SEMANTIC VIEW <sv>` shows `OWNERSHIP` for that role. If the check passes, follow the steps below
+(with the user's OK). If it fails, **don't change anything in Snowflake** (no `CREATE`/`ALTER`/`GRANT`, no
+`SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML`, not even the `TRUE` validation): build the page with what the semantic views
+support, leave the rest empty, and report it in the Jira comment (step 6). Never read the base tables directly to work
+around a gap, and never change grants or roles.
+
+When allowed:
+1. Ask the user's OK, listing the metrics to add (name, expression, why).
+2. **Read the YAML right before changing it** (`SYSTEM$READ_YAML_FROM_SEMANTIC_VIEW`): another user may have added
+   metrics minutes ago, and a deploy from an old copy would silently delete them. Save it as the backup
+   (`sv_backup/<SV>_BKP_<yyyymmdd_hhmm>.yaml`) and list its metric names.
+3. **Only add** metrics (public, additive) and the private `H_*` helpers they need. Never rename, change or remove an
+   existing one.
+4. Validate with `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML('<db>.<schema>', <yaml>, TRUE)` (from a script file:
+   `snow sql -f`), record `SHOW GRANTS ON SEMANTIC VIEW`, deploy with `FALSE` right away, and compare the grants
+   after the deploy: re-grant anything that disappeared.
+5. Read the YAML again and check that **every metric from step 2 is still there** plus the new ones. Check the new
+   metrics' numbers (totals vs. the source metric, per-entity rows summing to the total).
+6. Append a line to `references/sv-change-log.md` (date, semantic view, metrics added, reason / ticket, the user's
+   name) and publish it with the skill (see "Keep the skill current").
 
 ### 3. Design the custom SQL (the key decision)
 Read `references/sql-patterns.md`. In short:
@@ -175,7 +266,8 @@ Multi-page rules: the report file only contains **its own** pages, and the CLI m
   are workbook-wide, so two reports can't both use `date-range`. The CLI refuses collisions.
 - Re-pushing the same report replaces its pages, matched by name. All other pages stay untouched.
 Faithfulness checklist:
-- Same columns in the same order. Column `name` = the Power BI display name; `description` = `DAX measure [..]`.
+- Same columns in the same order as the ticket's layout. Column `name` = the display name from the ticket;
+  `description` = `DAX measure [..]` from the TMDL.
 - Formats taken from the DAX `formatString`.
 - Bookmark navigator → **segmented control, NEVER a `tabbed-container`**: `controlType: segmented`, one value per
   bookmark button (`source: {kind: manual, valueType: text, values: [...]}`), `value` = the default bookmark.
@@ -204,7 +296,8 @@ notification). Native windows (always on top) pop up on the user's screen:
    again. If the user wants another account, run `logout` first.
 2. **Connection**: a searchable list, shown only if the report still has `REPLACE_WITH_SIGMA_CONNECTION_ID` and you
    didn't pass `--connection-id`.
-3. **Workbook**: a searchable list, skipped if the user already gave you the workbook ID (`--workbook-id`).
+3. **Workbook**: a searchable list (always shown: never pass `--workbook-id` on the first push of a run; on a
+   fix-and-push retry in the same run you may pass the id the user just picked).
 4. **Confirm**: shows the current pages and what will be kept / added / replaced, plus the backup path, under a red
    warning that the push **publishes**. The user clicks **Publish** or **Cancel**.
 
@@ -248,14 +341,34 @@ python scripts/sigma_cli.py --base-url https://<your-org-api-host>.sigmacomputin
 - Run the CLI in a terminal the user controls (they type the secrets there). Never ask them to paste secrets into the
   chat.
 
-### 6. Report honestly
+### 6. Report honestly, and put the gaps in a Jira comment
 - An accepted import only proves the **structure**. The SQL and the control substitution run when the workbook
-  opens, so ask the user to open it and check every tab.
-- List what wasn't converted and why.
-- List synthetic-data limitations, e.g. keys that don't join so a measure comes back empty.
+  opens, so ask the user to open it and check every tab (and check it through the API export when possible).
+- List what wasn't converted and why, and the data limitations (e.g. keys that don't join so a measure is empty).
+- **Comment on the Jira ticket only when something has no solution in this run**, i.e. it stays missing or
+  different after you did everything the user is allowed to do: the data isn't in Snowflake (no base to build a
+  metric from), the user's role can't change the semantic view that would need a new metric, or Sigma has no
+  equivalent feature (e.g. a color scale based on another column). If everything was solved (including by adding
+  metrics), **don't comment**. If the user says not to comment, don't. Then write **one comment** that **mentions
+  the assignee**:
+  1. Draft it in English: a mention of the assignee, the Sigma workbook and page that were built, then one bullet per
+     gap with the visual, the field (display name), the DAX measure, why it is missing, and what would solve it (for
+     a semantic view: the metric name and expression to add; the owner adds it). End with "Posted by Claude on behalf
+     of <user's name>."
+  2. Show the exact text to the user and post it **only after they confirm**.
+  3. Post with `addOrEditJiraIssueComment` (new comment) and `contentFormat: html`, writing the mention as
+     `<span data-type="mention" data-user-id="<assignee accountId>">@<assignee displayName></span>` (the same HTML
+     the Jira tools return for mentions). If the ticket has no assignee, don't mention anyone and say so.
+  4. Re-read the comments (`listJiraIssueComments`, `responseContentFormat: html`) and check that the mention came
+     out as a mention (`data-type="mention"`), not plain text. Give the user the comment link.
+  - Never put secrets, connection ids or data values in the comment.
 
 ## Bundled files
-- `config.example.json`: the keys of `config.local.json` (company settings, written once per user, git-ignored).
+- `README.md`: the user guide (prerequisites, install, how to use, security, settings, troubleshooting). Keep it in
+  sync when a rule changes.
+- `config.example.json`: the keys of `config.local.json` (written once per user, git-ignored). A private fork may add
+  `config.team.json` with the team's defaults.
+- `references/sv-change-log.md`: every semantic view change made through this skill.
 - `scripts/sigma_cli.py`: cross-platform CLI with a hidden credential prompt, a host allow-list, a backup before
   each push, and page merging. It needs PyYAML only to read `.yaml`.
 - `scripts/token_cache.py`: 1-hour reuse of the access token in the Windows Credential Manager (logon session only).

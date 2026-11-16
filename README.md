@@ -4,7 +4,7 @@ Claude Code skills. Each folder is one skill.
 
 | Skill | What it does |
 |---|---|
-| [`sigma-yaml-from-semantic-views`](sigma-yaml-from-semantic-views/SKILL.md) | Rebuilds a Power BI report page (from a Jira ticket + TMDL) as a Sigma workbook page on Snowflake Semantic Views, and publishes it with each user's own Sigma API credentials. |
+| [`sigma-yaml-from-semantic-views`](sigma-yaml-from-semantic-views/README.md) ([how to use](sigma-yaml-from-semantic-views/README.md#2-how-to-use-it)) | Rebuilds a Power BI report page (layout from the Jira ticket, data from the TMDL mapped to Snowflake Semantic Views) as a Sigma workbook page, and publishes it with each user's own Sigma API credentials. Runs on Claude Opus 5.5. |
 
 ## Install (once)
 
@@ -25,7 +25,8 @@ ln -s ~/.claude/claude_skills/sigma-yaml-from-semantic-views ~/.claude/skills/si
 ```
 
 Then start the skill (`/sigma-yaml-from-semantic-views`). On the first run it asks for your company settings once and
-saves them in `config.local.json` (git-ignored, never published).
+saves them in `config.local.json` (git-ignored, never published). A team can keep a private fork with a
+`config.team.json` of shared defaults.
 
 ## Updates
 

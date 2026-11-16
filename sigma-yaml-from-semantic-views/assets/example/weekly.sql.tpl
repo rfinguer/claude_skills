@@ -1,4 +1,4 @@
--- Goals Dashboard - Activity / "Leads & Visits per Available Item" (PROJ-275). One row per entity x week ending.
+-- Sample Dashboard - Activity / "Leads & Visits per Available Item" (PROJ-275). One row per entity x week ending.
 -- Visual filter DimCalendar[xWeeksAgo] > 0 AND <= 52; page filters xDaysAgo_1DayLag >= 0, xYearsAgo_1DayLag 0..1.
 -- Not affected by the Relative Date slicer (interaction off in Power BI).
 -- Report filters: EntityID not blank, only entities that have DimItem[ActiveFlag] = 1 items.

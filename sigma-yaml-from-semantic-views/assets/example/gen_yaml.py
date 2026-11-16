@@ -1,4 +1,4 @@
-"""Generate the Sigma Workbooks-as-Code YAML for the Goals Dashboard 'Activity' page (Jira PROJ-275).
+"""Generate the Sigma Workbooks-as-Code YAML for the Sample Dashboard 'Activity' page (Jira PROJ-275).
 usage: python -I gen_yaml.py <src_dir> <out_dir>
 Schema checked against Sigma's public OpenAPI (PUT /v2/workbooks/{id}/spec).
 """
@@ -52,7 +52,7 @@ HELPERS = [
     ("h Renewals", "Sum([RENEWALS])", INT),
     ("h Trend", "Sum([TREND_ITEMS]) / Sum([SNAPSHOT_ITEMS])", PCT1),          # [<30 Trend]
     ("h Goal Adj", "Sum([TREND_GOAL_ITEMS]) / [h Items]", PCT1),           # [<30 Goal Adjusted]
-    ("h Lt30 Var Pct", "[h Trend] - [h Goal Adj]", PCT1),                           # [<30 Goals Var %]
+    ("h Lt30 Var Pct", "[h Trend] - [h Goal Adj]", PCT1),                           # [<30 Goal Var %]
     ("h Lt30 Var Num", "[h Lt30 Var Pct] * [h Items]", INT),                        # [<30 Var #]
     ("h Price per Item", "Sum([LIST_PRICE_AMT]) / [h Items]", "$,.2f"),                      # [Price per Item]
     ("h Util Var", "(Sum([UTIL_ACTUAL_ITEMS]) - Sum([UTIL_GOAL_ITEMS])) / [h Items]", PCT1),  # [Util Var %]
@@ -64,7 +64,7 @@ HELPERS = [
 # visible columns: (display name as in Power BI, DAX measure, formula, format)
 M = {
     "Items": ("Sum(DimItem[Items])", "[h Items]", INT),
-    "<30 Goals Var %": ("<30 Goals Var %", "[h Lt30 Var Pct]", PCT1),
+    "<30 Goal Var %": ("<30 Goal Var %", "[h Lt30 Var Pct]", PCT1),
     "<30 Var #": ("<30 Var #", "[h Lt30 Var Num]", INT),
     "Proj $ Var": ("Proj $ Var", "[h Price per Item] * [h Lt30 Var Num]", USD0),
     "Total Exposure": ("Total Exposure", "Sum([EXPOSURE_NUM]) / [h Items]", PCT1),
@@ -98,11 +98,11 @@ M = {
 }
 
 # Power BI column order + conditional formatting (PROJ-275)
-ACTIVITY_COLS = ["Items", "<30 Goals Var %", "<30 Var #", "Proj $ Var", "Total Exposure", "Gross Order", "Gross Order %",
+ACTIVITY_COLS = ["Items", "<30 Goal Var %", "<30 Var #", "Proj $ Var", "Total Exposure", "Gross Order", "Gross Order %",
                  "Cancel", "Reject", "% Cancel/Reject out of Gross Orders", "Net Order", "Net Order %", "Exit", "Net Exit",
                  "Net/Net", "Net/Net %", "Net/Net (Net Exit)", "Net/Net % (Net Exit)", "Renewals", "Renew %"]
 ACTIVITY_CF = [("backgroundScale", ["<30 Var #"], GREY),
-               ("backgroundScale", ["<30 Goals Var %"], RED_WHITE_GREEN),
+               ("backgroundScale", ["<30 Goal Var %"], RED_WHITE_GREEN),
                ("backgroundScale", ["Total Exposure"], GREEN_WHITE_RED),
                ("backgroundScale", ["Gross Order %"], RED_WHITE_GREEN),
                ("backgroundScale", ["Net Order %"], RED_WHITE_GREEN),
@@ -325,8 +325,8 @@ layout = """    <Page type="grid" gridTemplateColumns="repeat(24, 1fr)" gridTemp
       <Element elementId="wk_data001" gridColumn="1 / 25" gridRow="1 / 30"/>
     </Page>"""
 
-doc = f"""# Sigma Workbooks-as-Code spec - Goals Dashboard / page "Activity" (Jira PROJ-275)
-# Source of truth: PROJ-275 report page specification + Power BI TMDL (Goals Dashboard TMDL).
+doc = f"""# Sigma Workbooks-as-Code spec - Sample Dashboard / page "Activity" (Jira PROJ-275)
+# Source of truth: PROJ-275 report page specification + Power BI TMDL (Sample Dashboard TMDL).
 # Data ONLY from Snowflake semantic views (custom SQL: SELECT ... FROM SEMANTIC_VIEW(...)):
 #   MY_DB.MY_SCHEMA.TRANSACTIONS_SV  Gross Order (order date), Cancel/Reject (cancel date)
 #   MY_DB.MY_SCHEMA.SNAPSHOT_SV         snapshot, exits, renewals, calendar, weekly chart
@@ -345,7 +345,7 @@ doc = f"""# Sigma Workbooks-as-Code spec - Goals Dashboard / page "Activity" (Ji
 #                Rollup Entity, Entity Name -> list controls
 #   Locked/hidden filters (EntityID not blank, DimItem[ActiveFlag] = 1, xDaysAgo_1DayLag >= 0,
 #   xYearsAgo_1DayLag 0..1, xWeeksAgo 1..52 on the chart) -> applied inside the SQL
-name: Goals Dashboard - Activity
+name: Sample Dashboard - Activity
 document:
   schemaVersion: 1
   elements:
@@ -370,5 +370,5 @@ document:
     <?xml version="1.0" encoding="utf-8"?>
 {layout}
 """
-open(os.path.join(out, "goals_activity.yaml"), "w", encoding="utf-8", newline="\n").write(doc)
+open(os.path.join(out, "sample_activity.yaml"), "w", encoding="utf-8", newline="\n").write(doc)
 print("ok", len(doc.splitlines()), "lines")

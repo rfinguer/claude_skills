@@ -7,3 +7,5 @@ sigma_openapi.json
 backup_*.json
 last_push.txt
 *.zip
+preflight.local.json
+**/preflight.local.json

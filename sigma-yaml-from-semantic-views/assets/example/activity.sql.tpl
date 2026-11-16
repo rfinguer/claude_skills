@@ -1,4 +1,4 @@
--- Goals Dashboard - Activity (PROJ-275): one row per entity; ADDITIVE bases only (Sigma recomputes the DAX measures per group).
+-- Sample Dashboard - Activity (PROJ-275): one row per entity; ADDITIVE bases only (Sigma recomputes the DAX measures per group).
 -- Report/page filters from PROJ-275 applied here (locked/hidden in Power BI):
 --   DimEntity[EntityID] not blank | DimItem[ActiveFlag] = 1 (also restricts DimEntity, bi-directional DimItem->DimEntity)
 --   DimCalendar[xDaysAgo_1DayLag] >= 0 | DimCalendar[xYearsAgo_1DayLag] between 0 and 1
@@ -45,7 +45,7 @@ price AS (
             GOAL_MODEL_DAILY.AMT_NEW_GROWTH_GOAL_T30, GOAL_MODEL_DAILY.AMT_NEW_PRIOR_GOAL_T30,
             GOAL_MODEL_DAILY.AMT_RPT_GROWTH_GOAL_T30, GOAL_MODEL_DAILY.AMT_RPT_PRIOR_GOAL_T30)
 ),
--- 'Goals Focus Entity' calculated table (computed without report filters, like a DAX calculated table)
+-- 'Focus Entity' calculated table (computed without report filters, like a DAX calculated table)
 focus_base AS (
   SELECT ENTITY_ID, PROJ_AMT_VAR, TREND_VAR_PCT
   FROM SEMANTIC_VIEW(MY_DB.MY_SCHEMA.SNAPSHOT_SV

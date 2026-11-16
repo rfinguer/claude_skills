@@ -3,6 +3,7 @@
   "sv_schema": "MY_SCHEMA",
   "skip_sv_prefix": "ZZ_",
   "snowflake_account": "MYORG-MYACCOUNT",
+  "snowflake_role": "MY_ROLE",
   "jira_site": "your-site.atlassian.net",
   "sigma_api_host": "https://api.us.azure.sigmacomputing.com"
 }

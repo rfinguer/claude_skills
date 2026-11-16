@@ -1,5 +1,5 @@
-# Sigma Workbooks-as-Code spec - Goals Dashboard / page "Activity" (Jira PROJ-275)
-# Source of truth: PROJ-275 report page specification + Power BI TMDL (Goals Dashboard TMDL).
+# Sigma Workbooks-as-Code spec - Sample Dashboard / page "Activity" (Jira PROJ-275)
+# Source of truth: PROJ-275 report page specification + Power BI TMDL (Sample Dashboard TMDL).
 # Data ONLY from Snowflake semantic views (custom SQL: SELECT ... FROM SEMANTIC_VIEW(...)):
 #   MY_DB.MY_SCHEMA.TRANSACTIONS_SV  Gross Order (order date), Cancel/Reject (cancel date)
 #   MY_DB.MY_SCHEMA.SNAPSHOT_SV         snapshot, exits, renewals, calendar, weekly chart
@@ -18,7 +18,7 @@
 #                Rollup Entity, Entity Name -> list controls
 #   Locked/hidden filters (EntityID not blank, DimItem[ActiveFlag] = 1, xDaysAgo_1DayLag >= 0,
 #   xYearsAgo_1DayLag 0..1, xWeeksAgo 1..52 on the chart) -> applied inside the SQL
-name: Goals Dashboard - Activity
+name: Sample Dashboard - Activity
 document:
   schemaVersion: 1
   elements:
@@ -377,7 +377,7 @@ document:
         connectionId: REPLACE_WITH_SIGMA_CONNECTION_ID
         kind: sql
         statement: |-
-          -- Goals Dashboard - Activity (PROJ-275): one row per entity; ADDITIVE bases only (Sigma recomputes the DAX measures per group).
+          -- Sample Dashboard - Activity (PROJ-275): one row per entity; ADDITIVE bases only (Sigma recomputes the DAX measures per group).
           -- Report/page filters from PROJ-275 applied here (locked/hidden in Power BI):
           --   DimEntity[EntityID] not blank | DimItem[ActiveFlag] = 1 (also restricts DimEntity, bi-directional DimItem->DimEntity)
           --   DimCalendar[xDaysAgo_1DayLag] >= 0 | DimCalendar[xYearsAgo_1DayLag] between 0 and 1
@@ -424,7 +424,7 @@ document:
                       GOAL_MODEL_DAILY.AMT_NEW_GROWTH_GOAL_T30, GOAL_MODEL_DAILY.AMT_NEW_PRIOR_GOAL_T30,
                       GOAL_MODEL_DAILY.AMT_RPT_GROWTH_GOAL_T30, GOAL_MODEL_DAILY.AMT_RPT_PRIOR_GOAL_T30)
           ),
-          -- 'Goals Focus Entity' calculated table (computed without report filters, like a DAX calculated table)
+          -- 'Focus Entity' calculated table (computed without report filters, like a DAX calculated table)
           focus_base AS (
             SELECT ENTITY_ID, PROJ_AMT_VAR, TREND_VAR_PCT
             FROM SEMANTIC_VIEW(MY_DB.MY_SCHEMA.SNAPSHOT_SV
@@ -770,8 +770,8 @@ document:
             formatString: ',.0f'
         - id: at_m01
           formula: '[h Lt30 Var Pct]'
-          name: '<30 Goals Var %'
-          description: 'DAX measure [<30 Goals Var %]'
+          name: '<30 Goal Var %'
+          description: 'DAX measure [<30 Goal Var %]'
           format:
             kind: number
             formatString: ',.1%'
@@ -1044,7 +1044,7 @@ document:
         connectionId: REPLACE_WITH_SIGMA_CONNECTION_ID
         kind: sql
         statement: |-
-          -- Goals Dashboard - Activity (PROJ-275): one row per entity; ADDITIVE bases only (Sigma recomputes the DAX measures per group).
+          -- Sample Dashboard - Activity (PROJ-275): one row per entity; ADDITIVE bases only (Sigma recomputes the DAX measures per group).
           -- Report/page filters from PROJ-275 applied here (locked/hidden in Power BI):
           --   DimEntity[EntityID] not blank | DimItem[ActiveFlag] = 1 (also restricts DimEntity, bi-directional DimItem->DimEntity)
           --   DimCalendar[xDaysAgo_1DayLag] >= 0 | DimCalendar[xYearsAgo_1DayLag] between 0 and 1
@@ -1091,7 +1091,7 @@ document:
                       GOAL_MODEL_DAILY.AMT_NEW_GROWTH_GOAL_T30, GOAL_MODEL_DAILY.AMT_NEW_PRIOR_GOAL_T30,
                       GOAL_MODEL_DAILY.AMT_RPT_GROWTH_GOAL_T30, GOAL_MODEL_DAILY.AMT_RPT_PRIOR_GOAL_T30)
           ),
-          -- 'Goals Focus Entity' calculated table (computed without report filters, like a DAX calculated table)
+          -- 'Focus Entity' calculated table (computed without report filters, like a DAX calculated table)
           focus_base AS (
             SELECT ENTITY_ID, PROJ_AMT_VAR, TREND_VAR_PCT
             FROM SEMANTIC_VIEW(MY_DB.MY_SCHEMA.SNAPSHOT_SV
@@ -1683,7 +1683,7 @@ document:
         connectionId: REPLACE_WITH_SIGMA_CONNECTION_ID
         kind: sql
         statement: |-
-          -- Goals Dashboard - Activity / "Leads & Visits per Available Item" (PROJ-275). One row per entity x week ending.
+          -- Sample Dashboard - Activity / "Leads & Visits per Available Item" (PROJ-275). One row per entity x week ending.
           -- Visual filter DimCalendar[xWeeksAgo] > 0 AND <= 52; page filters xDaysAgo_1DayLag >= 0, xYearsAgo_1DayLag 0..1.
           -- Not affected by the Relative Date slicer (interaction off in Power BI).
           -- Report filters: EntityID not blank, only entities that have DimItem[ActiveFlag] = 1 items.

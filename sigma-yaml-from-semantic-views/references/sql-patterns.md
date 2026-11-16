@@ -83,10 +83,18 @@ Weights are Sigma sliders. Recompute each component per group from additive base
   deploy, and check that the ungrouped totals of both SVs are equal and that the per-entity rows sum to the total.
 - **A per-entity attribute that only exists as a FACT** (DAX `Average(Dim[col])`): facts can't be returned with the
   entity key, so add a public metric `AVG(<TABLE>.<FACT>)` (with the user's OK); Sigma then uses `Avg([col])` per group.
+- **Windows that follow a slicer** (DAX `FILTER(ALL(DimCalendar), xDaysAgo >= MIN(xDaysAgo) && xDaysAgo <= MIN(xDaysAgo) + N)`,
+  where MIN comes from the selected slicer value): the SV's fixed window metric ignores the slicer. Return the
+  additive count per entity and day (`DIMENSIONS <entity>, <ROLE_CALENDAR>.XDAYSAGO`), read the start day from a
+  Sigma list control inside the SQL (`(SELECT MIN(XDAYSAGO) FROM cal WHERE <LABEL> = {{ctl}})`, default from the
+  slicer's saved selection) and sum `start .. start + N` (LY: `start + 365 .. start + 365 + N`). Feed the control's
+  values from a small calendar data element with the slicer's locked filters.
+- **Keep DAX blanks blank**: build conditional sums as `SUM(IFF(cond, x, NULL))`, not `IFF(cond, x, 0)`, or empty
+  windows show 0 where Power BI shows blank.
 - **Window counts** (`COUNTROWS` over the last N days): use the SV's own `COUNT_IF` window metric. Summing a
   `SUM(<count column>)` metric by a day dimension is not the same count.
 
-## Lessons from the Goals page (PROJ-271)
+## More lessons
 - **Averages (AVERAGE / AVERAGEA) are not additive**: return SUM and COUNT per entity (add public metrics if needed)
   and let Sigma divide per group. A ratio of two averages over the same rows still needs both counts (blanks differ).
 - **Date-windowed counts over a fact-only table** (e.g. Survey promoters in the last 30 days): FACTS can't be queried
